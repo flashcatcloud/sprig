@@ -85,3 +85,27 @@ func TestUrlJoin(t *testing.T) {
 	}
 
 }
+
+func TestPathEscape(t *testing.T) {
+	// testing that function is exported and working properly
+	assert.NoError(t, runt(
+		`{{ pathEscape "CPU idle > 90%" }}`,
+		"CPU%20idle%20%3E%2090%25"))
+
+	// testing scenarios
+	for url, expected := range urlTests {
+		assert.EqualValues(t, expected, urlParse(url))
+	}
+}
+
+func TestPathUnEscape(t *testing.T) {
+	// testing that function is exported and working properly
+	assert.NoError(t, runt(
+		`{{ pathUnescape "CPU%20idle%20%3E%2090%25" }}`,
+		"CPU idle > 90%"))
+
+	// testing scenarios
+	for url, expected := range urlTests {
+		assert.EqualValues(t, expected, urlParse(url))
+	}
+}

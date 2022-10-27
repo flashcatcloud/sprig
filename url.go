@@ -64,3 +64,18 @@ func urlJoin(d map[string]interface{}) string {
 	resURL.User = user
 	return resURL.String()
 }
+
+// path escapes the strings
+func pathEscape(s string) string {
+	return url.PathEscape(s)
+}
+
+// path unescapes the strings
+func pathUnescape(s string) string {
+	ue, err := url.PathUnescape(s)
+	if err != nil {
+		return s
+	}
+
+	return ue
+}
