@@ -2,7 +2,12 @@ package sprig
 
 import "html/template"
 
-// unescape the path
-func toHtml(path string) interface{} {
-	return template.HTML(path)
+// unescape the vals
+func toHtml(vals ...string) interface{} {
+	for _, v := range vals {
+		if v != "" {
+			return template.HTML(v)
+		}
+	}
+	return ""
 }
