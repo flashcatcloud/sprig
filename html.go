@@ -1,13 +1,21 @@
 package sprig
 
-import "html/template"
+import (
+	"fmt"
+	"html/template"
+)
 
 // unescape the vals
-func toHtml(vals ...string) interface{} {
+func toHtml(vals ...interface{}) interface{} {
 	for _, v := range vals {
-		if v != "" {
-			return template.HTML(v)
+		if v == nil {
+			continue
 		}
+		if v == "" {
+			continue
+		}
+		return template.HTML(fmt.Sprintf("%v", v))
 	}
+
 	return ""
 }
