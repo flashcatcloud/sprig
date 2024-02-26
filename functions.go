@@ -22,8 +22,7 @@ import (
 //
 // Use this to pass the functions into the template engine:
 //
-// 	tpl := template.New("foo").Funcs(sprig.FuncMap()))
-//
+//	tpl := template.New("foo").Funcs(sprig.FuncMap()))
 func FuncMap() template.FuncMap {
 	return HtmlFuncMap()
 }
@@ -106,6 +105,7 @@ var genericMap = map[string]interface{}{
 	"dateModify":       dateModify,
 	"duration":         duration,
 	"durationRound":    durationRound,
+	"humanizeDuration": humanizeDuration,
 	"htmlDate":         htmlDate,
 	"htmlDateInZone":   htmlDateInZone,
 	"must_date_modify": mustDateModify,

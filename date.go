@@ -1,7 +1,9 @@
 package sprig
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -136,6 +138,55 @@ func durationRound(duration interface{}) string {
 		return strconv.FormatUint(u/second, 10) + "s"
 	}
 	return "0s"
+}
+
+func humanizeDuration(duration interface{}) (format string) {
+	defer func() {
+		if strings.HasSuffix(format, "m0s") {
+			format = strings.TrimSuffix(format, "0s")
+		}
+		if strings.HasSuffix(format, "h0m") {
+			format = strings.TrimSuffix(format, "0m")
+		}
+		if strings.HasSuffix(format, "d0h") {
+			format = strings.TrimSuffix(format, "0h")
+		}
+	}()
+
+	var d time.Duration
+	switch duration := duration.(type) {
+	default:
+		d = 0
+	case string:
+		d, _ = time.ParseDuration(duration)
+	case int64:
+		d = time.Duration(duration)
+	case time.Time:
+		d = time.Since(duration)
+	}
+
+	diff := int64(d.Seconds())
+
+	if diff < 60 {
+		return fmt.Sprintf("%ds", diff)
+	}
+
+	if diff < 3600 {
+		minutes := diff / 60
+		seconds := (diff % 60) / 1
+		return fmt.Sprintf("%dm%ds", minutes, seconds)
+	}
+
+	if diff < 86400 {
+		hours := diff / 3600
+		minutes := (diff % 3600) / 60
+		return fmt.Sprintf("%dh%dm", hours, minutes)
+
+	}
+
+	days := diff / 86400
+	hours := (diff % 86400) / 3600
+	return fmt.Sprintf("%dd%dh", days, hours)
 }
 
 func toDate(fmt, str string) time.Time {
