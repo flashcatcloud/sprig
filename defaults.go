@@ -24,7 +24,6 @@ func init() {
 //
 // For everything else, including pointers, a nil value is unset.
 func dfault(d interface{}, given ...interface{}) interface{} {
-
 	if empty(given) || empty(given[0]) {
 		return d
 	}
@@ -120,6 +119,17 @@ func mustToJson(v interface{}) (string, error) {
 
 // toPrettyJson encodes an item into a pretty (indented) JSON string
 func toPrettyJson(v interface{}) string {
+	str, ok := v.(string)
+	if ok {
+		var obj interface{}
+		err := json.Unmarshal([]byte(str), &obj)
+		if err != nil {
+			return str
+		}
+
+		return toPrettyJson(obj)
+	}
+
 	output, _ := json.MarshalIndent(v, "", "  ")
 	return string(output)
 }
