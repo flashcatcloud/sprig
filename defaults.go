@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/tidwall/gjson"
 )
 
 func init() {
@@ -161,6 +163,16 @@ func mustToRawJson(v interface{}) (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(buf.String(), "\n"), nil
+}
+
+// jsonGet returns the value of a JSON object at a given path.
+// check the path grammar from https://gjson.dev
+func jsonGet(jstr string, path string) string {
+	if !gjson.Valid(jstr) {
+		return ""
+	}
+
+	return gjson.Get(jstr, path).String()
 }
 
 // ternary returns the first value if the last value is true, otherwise returns the second value.

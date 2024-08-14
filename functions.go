@@ -251,6 +251,7 @@ var genericMap = map[string]interface{}{
 	"mustToJson":       mustToJson,
 	"mustToPrettyJson": mustToPrettyJson,
 	"mustToRawJson":    mustToRawJson,
+	"jsonGet":          jsonGet,
 	"ternary":          ternary,
 	"deepCopy":         deepCopy,
 	"mustDeepCopy":     mustDeepCopy,
