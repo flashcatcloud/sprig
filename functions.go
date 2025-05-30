@@ -255,6 +255,7 @@ var genericMap = map[string]interface{}{
 	"ternary":          ternary,
 	"deepCopy":         deepCopy,
 	"mustDeepCopy":     mustDeepCopy,
+	"normalizeMessage": normalizeMessage,
 
 	// Reflection
 	"typeOf":     typeOf,
