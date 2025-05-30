@@ -24,7 +24,10 @@ var (
 	filePathRegex = regexp.MustCompile(`(?:[/\.\w\-]+)*([\w\-]+(?:[-.][0-9a-f]{6,}|\.[a-zA-Z0-9]{1,5}))(?:[:\s]|$)`)
 
 	// UUID format regex
-	uuidRegex = regexp.MustCompile(`\b[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}\b`)
+	uuidRegex = regexp.MustCompile(`\b[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}\b`)
+
+	// JWT token format regex (header.payload.signature, each part is base64url encoded)
+	jwtRegex = regexp.MustCompile(`\b[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b`)
 
 	// MongoDB ObjectID format (24 hex characters)
 	objectIDRegex = regexp.MustCompile(`\b[0-9a-f]{24}\b`)
@@ -89,13 +92,14 @@ func normalizeMessage(message string) string {
 	// Replace the line number part, keeping the indicator if possible (more complex, currently replaces match)
 	normalized = lineNumRegex.ReplaceAllString(normalized, linePlaceholder) // Simple replacement for now
 
-	// 6. Standalone long numbers
-	normalized = numberRegex.ReplaceAllString(normalized, numberPlaceholder)
-
-	// 7. Specific ID formats (UUID, ObjectID, TraceID)
+	// 6. Specific ID formats (UUID, ObjectID, TraceID)
 	normalized = uuidRegex.ReplaceAllString(normalized, hashPlaceholder)
+	normalized = jwtRegex.ReplaceAllString(normalized, hashPlaceholder)
 	normalized = objectIDRegex.ReplaceAllString(normalized, hashPlaceholder)
 	normalized = traceIDRegex.ReplaceAllString(normalized, hashPlaceholder) // Place before general hash/hex
+
+	// 7. Standalone long numbers
+	normalized = numberRegex.ReplaceAllString(normalized, numberPlaceholder)
 
 	// 8. Common hash lengths (MD5, SHA1, SHA256)
 	normalized = hashRegex.ReplaceAllString(normalized, hashPlaceholder)
