@@ -100,6 +100,20 @@ substr 0 5 "hello world"
 
 The above returns `hello`
 
+## substrRune
+
+Get a substring from a string. It takes three parameters:
+
+- start (int)
+- end (int)
+- string (string)
+
+```
+substrRune 0 2 "世界你好"
+```
+
+The above returns `世界`
+
 ## nospace
 
 Remove all whitespace from a string.

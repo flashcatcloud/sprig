@@ -50,6 +50,7 @@ func abbrevboth(left, right int, s string) string {
 	r, _ := util.AbbreviateFull(s, left, right)
 	return r
 }
+
 func initials(s string) string {
 	// Wrap this just to eliminate the var args, which templates don't do well.
 	return util.Initials(s)
@@ -233,4 +234,37 @@ func substring(start, end int, s string) string {
 		return s[start:]
 	}
 	return s[start:end]
+}
+
+// substrRune creates a substring of the given string based on runes.
+//
+// If start is < 0, this calls string[:end].
+//
+// If start is >= 0 and end < 0 or end bigger than s length, this calls string[start:]
+//
+// Otherwise, this calls string[start, end].
+//
+// This is a multi-byte safe version of substring.
+func substrRune(start, end int, s string) string {
+	runes := []rune(s)
+	l := len(runes)
+	if start < 0 {
+		if end > l {
+			end = l
+		}
+		if end < 0 {
+			return ""
+		}
+		return string(runes[:end])
+	}
+	if end < 0 || end > l {
+		if start > l {
+			return ""
+		}
+		return string(runes[start:])
+	}
+	if start > end {
+		return ""
+	}
+	return string(runes[start:end])
 }

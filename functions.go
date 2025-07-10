@@ -125,6 +125,7 @@ var genericMap = map[string]interface{}{
 	"title":      strings.Title,
 	"untitle":    untitle,
 	"substr":     substring,
+	"substrRune": substrRune,
 	// Switch order so that "foo" | repeat 5
 	"repeat": func(count int, str string) string { return strings.Repeat(str, count) },
 	// Deprecated: Use trimAll.

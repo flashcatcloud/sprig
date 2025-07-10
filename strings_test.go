@@ -24,6 +24,32 @@ func TestSubstr_shorterString(t *testing.T) {
 	}
 }
 
+func TestSubstring(t *testing.T) {
+	for _, tt := range []struct {
+		tpl  string
+		want string
+	}{
+		{`{{ "hello" | substring 0 2 }}`, "he"},
+		{`{{ "hello" | substring 2 0 }}`, "he"},
+		{`{{ "hello" | substring 0 -1 }}`, "hello"},
+		{`{{ "hello" | substring 3 -1 }}`, "lo"},
+		{`{{ "hello" | substring -1 3 }}`, "hel"},
+		{`{{ "hello" | substring -1 -1 }}`, "hello"},
+		{`{{ "hello" | substring 0 10 }}`, "hello"},
+		{`{{ "hello" | substring 10 11 }}`, ""},
+		{`{{ "世界你好" | substring 0 2 }}`, "世"},
+		{`{{ "世界你好" | substrRune 0 2 }}`, "世界"},
+		{`{{ "世界你好" | substrRune 2 4 }}`, "你好"},
+		{`{{ "世界你好" | substrRune 2 10 }}`, "你好"},
+		{`{{ "世界你好" | substrRune 2 -1 }}`, "你好"},
+		{`{{ "世界你好" | substrRune -1 2 }}`, "世界"},
+	} {
+		if err := runt(tt.tpl, tt.want); err != nil {
+			t.Errorf("Failed %q: %s", tt.tpl, err)
+		}
+	}
+}
+
 func TestTrunc(t *testing.T) {
 	tpl := `{{ "foooooo" | trunc 3 }}`
 	if err := runt(tpl, "foo"); err != nil {
@@ -62,6 +88,7 @@ func TestQuote(t *testing.T) {
 		t.Error(err)
 	}
 }
+
 func TestSquote(t *testing.T) {
 	tpl := `{{squote "a" "b" "c"}}`
 	if err := runt(tpl, `'a' 'b' 'c'`); err != nil {
@@ -154,6 +181,7 @@ func TestSortAlpha(t *testing.T) {
 		assert.NoError(t, runt(tpl, expect))
 	}
 }
+
 func TestBase64EncodeDecode(t *testing.T) {
 	magicWord := "coffee"
 	expect := base64.StdEncoding.EncodeToString([]byte(magicWord))
@@ -171,6 +199,7 @@ func TestBase64EncodeDecode(t *testing.T) {
 		t.Error(err)
 	}
 }
+
 func TestBase32EncodeDecode(t *testing.T) {
 	magicWord := "coffee"
 	expect := base32.StdEncoding.EncodeToString([]byte(magicWord))
@@ -194,7 +223,7 @@ func TestGoutils(t *testing.T) {
 		`{{abbrev 5 "hello world"}}`:           "he...",
 		`{{abbrevboth 5 10 "1234 5678 9123"}}`: "...5678...",
 		`{{nospace "h e l l o "}}`:             "hello",
-		`{{untitle "First Try"}}`:              "first try", //https://youtu.be/44-RsrF_V_w
+		`{{untitle "First Try"}}`:              "first try", // https://youtu.be/44-RsrF_V_w
 		`{{initials "First Try"}}`:             "FT",
 		`{{wrap 5 "Hello World"}}`:             "Hello\nWorld",
 		`{{wrapWith 5 "\t" "Hello World"}}`:    "Hello\tWorld",
