@@ -17,7 +17,7 @@ func date(fmt string, date interface{}) string {
 }
 
 func htmlDate(date interface{}) string {
-	return dateInZone("2006-01-02", date, "Local")
+	return dateInZone("2006-01-02", date, "UTC")
 }
 
 func htmlDateInZone(date interface{}, zone string) string {
@@ -140,19 +140,9 @@ func durationRound(duration interface{}) string {
 	return "0s"
 }
 
-func humanizeDuration(duration interface{}) (format string) {
-	defer func() {
-		if strings.HasSuffix(format, "m0s") {
-			format = strings.TrimSuffix(format, "0s")
-		}
-		if strings.HasSuffix(format, "h0m") {
-			format = strings.TrimSuffix(format, "0m")
-		}
-		if strings.HasSuffix(format, "d0h") {
-			format = strings.TrimSuffix(format, "0h")
-		}
-	}()
-
+// humanizeDuration formats a duration into a human-readable string like "1d2h", "3h45m", "30s".
+// Negative durations are treated as their absolute value.
+func humanizeDuration(duration interface{}) string {
 	var d time.Duration
 	switch duration := duration.(type) {
 	default:
@@ -165,28 +155,40 @@ func humanizeDuration(duration interface{}) (format string) {
 		d = time.Since(duration)
 	}
 
+	// Handle negative durations by taking absolute value
+	if d < 0 {
+		d = -d
+	}
+
 	diff := int64(d.Seconds())
 
+	var format string
 	if diff < 60 {
-		return fmt.Sprintf("%ds", diff)
-	}
-
-	if diff < 3600 {
+		format = fmt.Sprintf("%ds", diff)
+	} else if diff < 3600 {
 		minutes := diff / 60
-		seconds := (diff % 60) / 1
-		return fmt.Sprintf("%dm%ds", minutes, seconds)
-	}
-
-	if diff < 86400 {
+		seconds := diff % 60
+		format = fmt.Sprintf("%dm%ds", minutes, seconds)
+		if seconds == 0 {
+			format = strings.TrimSuffix(format, "0s")
+		}
+	} else if diff < 86400 {
 		hours := diff / 3600
 		minutes := (diff % 3600) / 60
-		return fmt.Sprintf("%dh%dm", hours, minutes)
-
+		format = fmt.Sprintf("%dh%dm", hours, minutes)
+		if minutes == 0 {
+			format = strings.TrimSuffix(format, "0m")
+		}
+	} else {
+		days := diff / 86400
+		hours := (diff % 86400) / 3600
+		format = fmt.Sprintf("%dd%dh", days, hours)
+		if hours == 0 {
+			format = strings.TrimSuffix(format, "0h")
+		}
 	}
 
-	days := diff / 86400
-	hours := (diff % 86400) / 3600
-	return fmt.Sprintf("%dd%dh", days, hours)
+	return format
 }
 
 func toDate(fmt, str string) time.Time {

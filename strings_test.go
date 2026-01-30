@@ -3,6 +3,7 @@ package sprig
 import (
 	"encoding/base32"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"testing"
 	"unicode/utf8"
@@ -10,11 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSubstr(t *testing.T) {
-	tpl := `{{"fooo" | substr 0 3 }}`
-	if err := runt(tpl, "foo"); err != nil {
-		t.Error(err)
-	}
+type stringerImpl struct {
+	Value string
+}
+
+// String satisfies the Stringer interface.
+func (s stringerImpl) String() string {
+	return s.Value
 }
 
 func TestSubstr_shorterString(t *testing.T) {
@@ -24,20 +27,20 @@ func TestSubstr_shorterString(t *testing.T) {
 	}
 }
 
-func TestSubstring(t *testing.T) {
+func TestSubstr(t *testing.T) {
 	for _, tt := range []struct {
 		tpl  string
 		want string
 	}{
-		{`{{ "hello" | substring 0 2 }}`, "he"},
-		{`{{ "hello" | substring 2 0 }}`, "he"},
-		{`{{ "hello" | substring 0 -1 }}`, "hello"},
-		{`{{ "hello" | substring 3 -1 }}`, "lo"},
-		{`{{ "hello" | substring -1 3 }}`, "hel"},
-		{`{{ "hello" | substring -1 -1 }}`, "hello"},
-		{`{{ "hello" | substring 0 10 }}`, "hello"},
-		{`{{ "hello" | substring 10 11 }}`, ""},
-		{`{{ "世界你好" | substring 0 2 }}`, "世"},
+		{`{{ "hello" | substr 0 2 }}`, "he"},
+		{`{{ "hello" | substr 2 0 }}`, "he"},
+		{`{{ "hello" | substr 0 -1 }}`, "hello"},
+		{`{{ "hello" | substr 3 -1 }}`, "lo"},
+		{`{{ "hello" | substr -1 3 }}`, "hel"},
+		{`{{ "hello" | substr -1 -1 }}`, "hello"},
+		{`{{ "hello" | substr 0 10 }}`, "hello"},
+		{`{{ "hello" | substr 10 11 }}`, ""},
+		{`{{ "世界你好" | substr 0 2 }}`, "世"},
 		{`{{ "世界你好" | substrRune 0 2 }}`, "世界"},
 		{`{{ "世界你好" | substrRune 2 4 }}`, "你好"},
 		{`{{ "世界你好" | substrRune 2 10 }}`, "你好"},
@@ -148,8 +151,19 @@ func TestSplitn(t *testing.T) {
 }
 
 func TestToString(t *testing.T) {
-	tpl := `{{ toString 1 | kindOf }}`
-	assert.NoError(t, runt(tpl, "string"))
+	tests := []interface{}{
+		1,
+		"string",
+		[]byte("bytes"),
+		errors.New("error"),
+		stringerImpl{
+			Value: "stringer",
+		},
+	}
+	for _, test := range tests {
+		tpl := `{{ toString .Value | kindOf }}`
+		assert.NoError(t, runtv(tpl, "string", map[string]interface{}{"Value": test}))
+	}
 }
 
 func TestToStrings(t *testing.T) {

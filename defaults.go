@@ -121,6 +121,17 @@ func mustToJson(v interface{}) (string, error) {
 
 // toPrettyJson encodes an item into a pretty (indented) JSON string
 func toPrettyJson(v interface{}) string {
+	return toPrettyJsonWithDepth(v, 0)
+}
+
+// toPrettyJsonWithDepth encodes an item into a pretty JSON string with recursion depth limit
+func toPrettyJsonWithDepth(v interface{}, depth int) string {
+	// Prevent infinite recursion (max depth: 100)
+	if depth > 100 {
+		output, _ := json.MarshalIndent(v, "", "  ")
+		return string(output)
+	}
+
 	str, ok := v.(string)
 	if ok {
 		var obj interface{}
@@ -129,7 +140,7 @@ func toPrettyJson(v interface{}) string {
 			return str
 		}
 
-		return toPrettyJson(obj)
+		return toPrettyJsonWithDepth(obj, depth+1)
 	}
 
 	output, _ := json.MarshalIndent(v, "", "  ")

@@ -13,7 +13,7 @@ func dictGetOrEmpty(dict map[string]interface{}, key string) string {
 	}
 	tp := reflect.TypeOf(value).Kind()
 	if tp != reflect.String {
-		panic(fmt.Sprintf("unable to parse %s key, must be of type string, but %s found", key, tp.String()))
+		panic(fmt.Sprintf("failed to parse key %q: expected string type, got %s", key, tp.String()))
 	}
 	return reflect.ValueOf(value).String()
 }
@@ -23,7 +23,7 @@ func urlParse(v string) map[string]interface{} {
 	dict := map[string]interface{}{}
 	parsedURL, err := url.Parse(v)
 	if err != nil {
-		panic(fmt.Sprintf("unable to parse url: %s", err))
+		panic(fmt.Sprintf("failed to parse URL: %v", err))
 	}
 	dict["scheme"] = parsedURL.Scheme
 	dict["host"] = parsedURL.Host
@@ -56,7 +56,7 @@ func urlJoin(d map[string]interface{}) string {
 	if userinfo != "" {
 		tempURL, err := url.Parse(fmt.Sprintf("proto://%s@host", userinfo))
 		if err != nil {
-			panic(fmt.Sprintf("unable to parse userinfo in dict: %s", err))
+			panic(fmt.Sprintf("failed to parse userinfo in dict: %v", err))
 		}
 		user = tempURL.User
 	}
@@ -78,4 +78,61 @@ func pathUnescape(s string) string {
 	}
 
 	return ue
+}
+
+// urlEncode encodes special characters in URL query parameters while preserving URL structure.
+// This is useful for Markdown links where unencoded spaces/quotes in URLs break link parsing.
+func urlEncode(rawURL string) string {
+	if rawURL == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return url.QueryEscape(rawURL)
+	}
+
+	// Re-encode query parameters properly
+	if parsed.RawQuery != "" {
+		values, err := url.ParseQuery(parsed.RawQuery)
+		if err == nil {
+			parsed.RawQuery = values.Encode()
+		}
+	}
+
+	return parsed.String()
+}
+
+// urlDecode decodes percent-encoded characters in URL query parameters and path.
+func urlDecode(encodedURL string) string {
+	if encodedURL == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(encodedURL)
+	if err != nil {
+		decoded, err := url.QueryUnescape(encodedURL)
+		if err != nil {
+			return encodedURL
+		}
+		return decoded
+	}
+
+	// Decode path
+	if parsed.Path != "" {
+		decodedPath, err := url.PathUnescape(parsed.Path)
+		if err == nil {
+			parsed.Path = decodedPath
+		}
+	}
+
+	// Decode query parameters
+	if parsed.RawQuery != "" {
+		decoded, err := url.QueryUnescape(parsed.RawQuery)
+		if err == nil {
+			parsed.RawQuery = decoded
+		}
+	}
+
+	return parsed.String()
 }

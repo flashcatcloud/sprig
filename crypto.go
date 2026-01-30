@@ -14,6 +14,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -27,14 +28,18 @@ import (
 	"io"
 	"math/big"
 	"net"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	bcrypt_lib "golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
 )
+
+func sha512sum(input string) string {
+	hash := sha512.Sum512([]byte(input))
+	return hex.EncodeToString(hash[:])
+}
 
 func sha256sum(input string) string {
 	hash := sha256.Sum256([]byte(input))
@@ -54,17 +59,38 @@ func adler32sum(input string) string {
 func bcrypt(input string) string {
 	hash, err := bcrypt_lib.GenerateFromPassword([]byte(input), bcrypt_lib.DefaultCost)
 	if err != nil {
-		return fmt.Sprintf("failed to encrypt string with bcrypt: %s", err)
+		return fmt.Sprintf("bcrypt encryption failed: %v", err)
 	}
 
 	return string(hash)
 }
 
-func htpasswd(username string, password string) string {
+func hashSha(password string) string {
+	s := sha1.New()
+	s.Write([]byte(password))
+	passwordSum := []byte(s.Sum(nil))
+	return base64.StdEncoding.EncodeToString(passwordSum)
+}
+
+// HashAlgorithm enum for hashing algorithms
+type HashAlgorithm string
+
+const (
+	// HashBCrypt bcrypt - recommended
+	HashBCrypt = "bcrypt"
+	HashSHA    = "sha"
+)
+
+func htpasswd(username string, password string, hashAlgorithm HashAlgorithm) string {
 	if strings.Contains(username, ":") {
 		return fmt.Sprintf("invalid username: %s", username)
 	}
-	return fmt.Sprintf("%s:%s", username, bcrypt(password))
+	switch hashAlgorithm {
+	case HashSHA:
+		return fmt.Sprintf("%s:{SHA}%s", username, hashSha(password))
+	default:
+		return fmt.Sprintf("%s:%s", username, bcrypt(password))
+	}
 }
 
 func randBytes(count int) (string, error) {
@@ -84,11 +110,13 @@ var masterPasswordSeed = "com.lyndir.masterpassword"
 
 var passwordTypeTemplates = map[string][][]byte{
 	"maximum": {[]byte("anoxxxxxxxxxxxxxxxxx"), []byte("axxxxxxxxxxxxxxxxxno")},
-	"long": {[]byte("CvcvnoCvcvCvcv"), []byte("CvcvCvcvnoCvcv"), []byte("CvcvCvcvCvcvno"), []byte("CvccnoCvcvCvcv"), []byte("CvccCvcvnoCvcv"),
+	"long": {
+		[]byte("CvcvnoCvcvCvcv"), []byte("CvcvCvcvnoCvcv"), []byte("CvcvCvcvCvcvno"), []byte("CvccnoCvcvCvcv"), []byte("CvccCvcvnoCvcv"),
 		[]byte("CvccCvcvCvcvno"), []byte("CvcvnoCvccCvcv"), []byte("CvcvCvccnoCvcv"), []byte("CvcvCvccCvcvno"), []byte("CvcvnoCvcvCvcc"),
 		[]byte("CvcvCvcvnoCvcc"), []byte("CvcvCvcvCvccno"), []byte("CvccnoCvccCvcv"), []byte("CvccCvccnoCvcv"), []byte("CvccCvccCvcvno"),
 		[]byte("CvcvnoCvccCvcc"), []byte("CvcvCvccnoCvcc"), []byte("CvcvCvccCvccno"), []byte("CvccnoCvcvCvcc"), []byte("CvccCvcvnoCvcc"),
-		[]byte("CvccCvcvCvccno")},
+		[]byte("CvccCvcvCvccno"),
+	},
 	"medium": {[]byte("CvcnoCvc"), []byte("CvcCvcno")},
 	"short":  {[]byte("Cvcn")},
 	"basic":  {[]byte("aaanaaan"), []byte("aannaaan"), []byte("aaannaaa")},
@@ -108,7 +136,7 @@ var templateCharacters = map[byte]string{
 }
 
 func derivePassword(counter uint32, passwordType, password, user, site string) string {
-	var templates = passwordTypeTemplates[passwordType]
+	templates := passwordTypeTemplates[passwordType]
 	if templates == nil {
 		return fmt.Sprintf("cannot find password template %s", passwordType)
 	}
@@ -121,7 +149,7 @@ func derivePassword(counter uint32, passwordType, password, user, site string) s
 	salt := buffer.Bytes()
 	key, err := scrypt.Key([]byte(password), salt, 32768, 8, 2, 64)
 	if err != nil {
-		return fmt.Sprintf("failed to derive password: %s", err)
+		return fmt.Sprintf("scrypt password derivation failed: %v", err)
 	}
 
 	buffer.Truncate(len(masterPasswordSeed))
@@ -129,10 +157,10 @@ func derivePassword(counter uint32, passwordType, password, user, site string) s
 	buffer.WriteString(site)
 	binary.Write(&buffer, binary.BigEndian, counter)
 
-	var hmacv = hmac.New(sha256.New, key)
+	hmacv := hmac.New(sha256.New, key)
 	hmacv.Write(buffer.Bytes())
-	var seed = hmacv.Sum(nil)
-	var temp = templates[int(seed[0])%len(templates)]
+	seed := hmacv.Sum(nil)
+	temp := templates[int(seed[0])%len(templates)]
 
 	buffer.Truncate(0)
 	for i, element := range temp {

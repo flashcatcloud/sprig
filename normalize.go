@@ -78,6 +78,18 @@ var (
 
 	// Regex to clean multiple spaces
 	multiSpaceRegex = regexp.MustCompile(`\s{2,}`)
+
+	// ObjectIDs in URL paths
+	objectIDInPathRegex = regexp.MustCompile(`/([0-9a-f]{24})(?:/|$|\|)`)
+
+	// All numbers
+	allNumberRegex = regexp.MustCompile(`\b\d+\b`)
+
+	// Short uppercase identifiers in specific contexts (like key:VALUE, currencyList=VALUE, 平台key：VALUE)
+	shortContextRegex = regexp.MustCompile(`((?:key|currency|platform|币种|平台key)(?:Key|List|Name)?[:：=])\s*([A-Z]{3,8})\b`)
+
+	// Payment method identifiers in parentheses (like (PIX), (BRL))
+	paymentMethodRegex = regexp.MustCompile(`\(([A-Z]{2,8})\)`)
 )
 
 // Placeholders
@@ -129,7 +141,6 @@ func normalizeMessage(message string) string {
 
 	// 7. MongoDB ObjectIDs (but handle path context specially)
 	// First handle ObjectIDs in URL paths as numbers
-	objectIDInPathRegex := regexp.MustCompile(`/([0-9a-f]{24})(?:/|$|\|)`)
 	normalized = objectIDInPathRegex.ReplaceAllStringFunc(normalized, func(match string) string {
 		if strings.HasSuffix(match, "/") {
 			return "/" + numberPlaceholder + "/"
@@ -160,7 +171,6 @@ func normalizeMessage(message string) string {
 
 	// 9. All numbers (after dates, before hex patterns to prioritize number interpretation)
 	// This includes both large and small numbers
-	allNumberRegex := regexp.MustCompile(`\b\d+\b`)
 	normalized = allNumberRegex.ReplaceAllString(normalized, numberPlaceholder)
 
 	// 10. Trace IDs (32 hex chars, before other hex patterns)
@@ -188,11 +198,9 @@ func normalizeMessage(message string) string {
 	normalized = taskIdRegex.ReplaceAllString(normalized, placeholderGeneric)
 
 	// 18. Short uppercase identifiers in specific contexts (like key:VALUE, currencyList=VALUE, 平台key：VALUE)
-	shortContextRegex := regexp.MustCompile(`((?:key|currency|platform|币种|平台key)(?:Key|List|Name)?[:：=])\s*([A-Z]{3,8})\b`)
 	normalized = shortContextRegex.ReplaceAllString(normalized, "${1}"+placeholderGeneric)
 
 	// 19. Payment method identifiers in parentheses (like (PIX), (BRL))
-	paymentMethodRegex := regexp.MustCompile(`\(([A-Z]{2,8})\)`)
 	normalized = paymentMethodRegex.ReplaceAllString(normalized, "({?})")
 
 	// 20. Handle stack traces

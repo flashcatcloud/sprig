@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	util "github.com/Masterminds/goutils"
 )
@@ -227,13 +228,87 @@ func splitn(sep string, n int, orig string) map[string]string {
 //
 // Otherwise, this calls string[start, end].
 func substring(start, end int, s string) string {
-	if start < 0 {
-		return s[:end]
+	length := len(s)
+
+	// Handle both negative case: return full string
+	if start < 0 && end < 0 {
+		return s
 	}
-	if end < 0 || end > len(s) {
-		return s[start:]
+
+	// Normalize negative indices first
+	normalizedStart := start
+	normalizedEnd := end
+	if normalizedStart < 0 {
+		normalizedStart = 0
 	}
-	return s[start:end]
+	if normalizedEnd < 0 {
+		normalizedEnd = length
+	}
+
+	// Handle start > end case: return from 0 to start
+	// Only check this after normalizing negative indices
+	if normalizedStart > normalizedEnd {
+		normalizedStart, normalizedEnd = 0, normalizedStart
+	}
+
+	// Check bounds
+	if normalizedStart > length {
+		return ""
+	}
+	if normalizedEnd > length {
+		normalizedEnd = length
+	}
+	if normalizedStart >= normalizedEnd {
+		return ""
+	}
+
+	// Ensure we don't cut UTF-8 characters in the middle
+	// Adjust start forward if it's in the middle of a UTF-8 character
+	if normalizedStart > 0 && normalizedStart < length {
+		// Check if start is at a UTF-8 character boundary
+		if !utf8.RuneStart(s[normalizedStart]) {
+			// Find the start of the next valid UTF-8 character
+			for normalizedStart < length && normalizedStart < normalizedEnd && !utf8.RuneStart(s[normalizedStart]) {
+				normalizedStart++
+			}
+			if normalizedStart >= normalizedEnd {
+				return ""
+			}
+		}
+	}
+
+	// Adjust end if it's in the middle of a UTF-8 character
+	if normalizedEnd > normalizedStart && normalizedEnd < length {
+		// Check if end is at a UTF-8 character boundary
+		if !utf8.RuneStart(s[normalizedEnd]) {
+			// Find the start of the current character by going backward
+			tempEnd := normalizedEnd
+			for tempEnd > normalizedStart && !utf8.RuneStart(s[tempEnd]) {
+				tempEnd--
+			}
+			// Now find the end of this character
+			if tempEnd >= normalizedStart && tempEnd < length {
+				_, size := utf8.DecodeRuneInString(s[tempEnd:])
+				normalizedEnd = tempEnd + size
+				if normalizedEnd > length {
+					normalizedEnd = length
+				}
+			} else {
+				// If we can't find a valid character start, just use the original end
+				normalizedEnd = length
+			}
+		}
+	}
+
+	// Extract substring after UTF-8 boundary adjustments
+	if normalizedStart >= normalizedEnd || normalizedStart > length {
+		return ""
+	}
+	if normalizedEnd > length {
+		normalizedEnd = length
+	}
+
+	return s[normalizedStart:normalizedEnd]
 }
 
 // substrRune creates a substring of the given string based on runes.
